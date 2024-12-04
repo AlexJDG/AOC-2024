@@ -17,9 +17,9 @@ pub fn part_one(input: &str) -> Option<u32> {
 
 pub fn part_two(input: &str) -> Option<u32> {
     Some(
-        Regex::new(r"(?:^|do\(\))(.*?)(?:don't\(\)|$)")
+        Regex::new(r"(?:^|do\(\))((?:.|\n)*?)(?:don't\(\)|$)")
             .unwrap()
-            .captures_iter(&input.lines().collect::<Vec<_>>().join(""))
+            .captures_iter(input)
             .flat_map(|captures| captures.extract::<1>().1)
             .map(sum_mul)
             .sum(),
