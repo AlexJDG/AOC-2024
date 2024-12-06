@@ -62,7 +62,7 @@ fn get_char_positions(lines: &Vec<Vec<&str>>, search_char: &str) -> Vec<V2D<usiz
     word_starts
 }
 
-fn is_point_in_wordsearch(ws: &Vec<Vec<&str>>, &V2D(y, x): &V2D<i32>) -> bool {
+fn is_point_in_wordsearch(ws: &[Vec<&str>], &V2D(y, x): &V2D<i32>) -> bool {
     x >= 0 && y >= 0 && y < (ws.len() as i32) && x < (ws[y as usize].len() as i32)
 }
 
@@ -78,7 +78,10 @@ pub fn part_one(input: &str) -> Option<u32> {
         V2D(-1, -1), // NW
     ];
 
-    let word_chunks = "XMAS".split("").filter(|c| *c != "").collect::<Vec<_>>();
+    let word_chunks = "XMAS"
+        .split("")
+        .filter(|c| !c.is_empty())
+        .collect::<Vec<_>>();
     let (first_char, rest_of_word) = word_chunks.split_first().unwrap();
 
     let lines = wordsearch_to_vec(input);
