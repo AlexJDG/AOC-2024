@@ -61,20 +61,21 @@ pub fn part_two(input: &str) -> Option<u32> {
         Some(
             reports
                 .filter(|report| !is_report_valid(report, &rules_map))
-                .map(|report| {
+                .map(HashSet::from_iter)
+                .map(|report_set: HashSet<&str>| {
                     let mut filtered_rules = rules_map
                         .iter()
-                        .filter(|(before_page, _)| report.contains(before_page))
+                        .filter(|(&key, _)| report_set.contains(key))
                         .collect::<HashMap<_, _>>();
 
-                    let res = (0..(filtered_rules.len() - 1))
+                    let res = (1..filtered_rules.len())
                         .map(|_| {
+                            let requisite_set: HashSet<&str> =
+                                filtered_rules.keys().map(|&s| *s).collect();
                             let (&next_page, _) = &filtered_rules
                                 .iter()
                                 .find(|(_, prerequisite_pages)| {
-                                    !prerequisite_pages
-                                        .iter()
-                                        .any(|prereq| filtered_rules.contains_key(prereq))
+                                    prerequisite_pages.is_disjoint(&requisite_set)
                                 })
                                 .unwrap();
 
