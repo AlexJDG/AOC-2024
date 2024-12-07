@@ -3,6 +3,7 @@ advent_of_code::solution!(7);
 enum Operator {
     Add,
     Mul,
+    Concat,
 }
 
 fn parse(input: &str) -> Vec<(u64, Vec<u64>)> {
@@ -23,8 +24,7 @@ fn parse(input: &str) -> Vec<(u64, Vec<u64>)> {
         .collect()
 }
 
-pub fn part_one(input: &str) -> Option<u64> {
-    let operators = [Operator::Add, Operator::Mul];
+fn get_calibration_result(input: &str, operators: &[Operator]) -> Option<u64> {
     Some(
         parse(input)
             .iter()
@@ -40,6 +40,10 @@ pub fn part_one(input: &str) -> Option<u64> {
                                     .map(|op| match op {
                                         Operator::Add => combo + num,
                                         Operator::Mul => combo * num,
+                                        Operator::Concat => (combo.to_string()
+                                            + num.to_string().as_str())
+                                        .parse::<u64>()
+                                        .unwrap_or(0),
                                     })
                                     .collect::<Vec<u64>>()
                             })
@@ -54,8 +58,12 @@ pub fn part_one(input: &str) -> Option<u64> {
     )
 }
 
-pub fn part_two(_input: &str) -> Option<u64> {
-    None
+pub fn part_one(input: &str) -> Option<u64> {
+    get_calibration_result(input, &[Operator::Add, Operator::Mul])
+}
+
+pub fn part_two(input: &str) -> Option<u64> {
+    get_calibration_result(input, &[Operator::Add, Operator::Mul, Operator::Concat])
 }
 
 #[cfg(test)]
@@ -71,6 +79,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(11387));
     }
 }
