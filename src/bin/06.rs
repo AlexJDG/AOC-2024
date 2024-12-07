@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 advent_of_code::solution!(6);
 
@@ -63,7 +63,12 @@ fn is_point_in_map(map: &[Vec<bool>], (y, x): (i32, i32)) -> bool {
     x >= 0 && y >= 0 && y < (map.len() as i32) && x < (map[y as usize].len() as i32)
 }
 
-fn walk(map: &[Vec<bool>], pos: &mut (i32, i32), dir: &mut Dir, obstacle: Option<(i32, i32)>) {
+fn walk(
+    map: &[Vec<bool>],
+    pos: &mut (i32, i32),
+    dir: &mut Dir,
+    obstacle: Option<(i32, i32)>,
+) -> bool {
     let (yn, xn) = dir.get_next_point(*pos);
 
     let collides_with_obstacle = if let Some(obs) = obstacle {
@@ -75,9 +80,11 @@ fn walk(map: &[Vec<bool>], pos: &mut (i32, i32), dir: &mut Dir, obstacle: Option
     if is_point_in_map(map, (yn, xn))
         && (*map.get(yn as usize).unwrap().get(xn as usize).unwrap() || collides_with_obstacle)
     {
-        dir.turn_right()
+        dir.turn_right();
+        false
     } else {
         *pos = (yn, xn);
+        true
     }
 }
 
@@ -99,18 +106,27 @@ pub fn part_two(input: &str) -> Option<u32> {
     let mut pos = original_pos;
 
     let mut dir = Dir::Up;
-    let mut path = HashSet::new();
+    let mut path = HashMap::new();
+
+    path.insert(pos, dir);
 
     while is_point_in_map(&map, pos) {
-        path.insert((pos.0, pos.1));
-        walk(&map, &mut pos, &mut dir, None);
+        if walk(&map, &mut pos, &mut dir, None) {
+            path.entry(pos).or_insert(dir);
+        }
     }
 
     u32::try_from(
         path.iter()
-            .filter(|(y, x)| {
-                let mut subpath_dir = Dir::Up;
-                let mut subpath_pos = original_pos;
+            .filter(|((y, x), &point_dir)| {
+                let mut subpath_dir = point_dir;
+                let mut subpath_pos = match subpath_dir {
+                    Dir::Up => (*y + 1, *x),
+                    Dir::Right => (*y, *x - 1),
+                    Dir::Down => (*y - 1, *x),
+                    Dir::Left => (*y, *x + 1),
+                };
+
                 let mut step_set: HashSet<(i32, i32, Dir)> = HashSet::new();
 
                 while is_point_in_map(&map, subpath_pos) {
