@@ -1,34 +1,44 @@
 use std::collections::{HashMap, HashSet};
 use std::iter::Map;
-use std::num::ParseIntError;
 use std::str::Lines;
 
 advent_of_code::solution!(5);
 
-type RulesMap<'a> = HashMap<&'a str, HashSet<&'a str>>;
-type ReportLinesIterator<'a> = Map<Lines<'a>, fn(&str) -> Vec<&str>>;
+type RulesMap = HashMap<u32, HashSet<u32>>;
+type ReportLinesIterator<'a> = Map<Lines<'a>, fn(&str) -> Vec<u32>>;
 
 fn parse(input: &str) -> Option<(RulesMap, ReportLinesIterator)> {
     if let Some((ordering_rules, page_lists)) = input.split_once("\n\n") {
         Some((
             ordering_rules
                 .lines()
-                .fold(HashMap::new(), |mut map: RulesMap, rule| {
-                    let (before, after) = rule.split_once("|").unwrap();
+                .map(|line| {
+                    let (before, after) = line.split_once("|").unwrap();
 
-                    map.entry(before).or_default().insert(after);
-                    map
-                }),
-            page_lists
-                .lines()
-                .map(|line| line.split(",").collect::<Vec<_>>()),
+                    let before_num = before.parse::<u32>().unwrap_or_default();
+                    let after_num = after.parse::<u32>().unwrap_or_default();
+
+                    (before_num, after_num)
+                })
+                .fold(
+                    HashMap::new(),
+                    |mut map: RulesMap, (before_num, after_num)| {
+                        map.entry(before_num).or_default().insert(after_num);
+                        map
+                    },
+                ),
+            page_lists.lines().map(|line| {
+                line.split(",")
+                    .map(|num_string| num_string.parse::<u32>().unwrap_or_default())
+                    .collect::<Vec<_>>()
+            }),
         ))
     } else {
         None
     }
 }
 
-fn is_report_valid(report: &Vec<&str>, rules_map: &RulesMap) -> bool {
+fn is_report_valid(report: &[u32], rules_map: &RulesMap) -> bool {
     report.iter().enumerate().all(|(idx, char)| {
         if let Some(prerequisites) = rules_map.get(char) {
             return !report[..idx]
@@ -39,8 +49,8 @@ fn is_report_valid(report: &Vec<&str>, rules_map: &RulesMap) -> bool {
     })
 }
 
-fn get_middle_page(report: &[&str]) -> Result<u32, ParseIntError> {
-    report.get(report.len() / 2).unwrap_or(&"0").parse::<u32>()
+fn get_middle_page(report: Vec<u32>) -> u32 {
+    *report.get(report.len() / 2).unwrap_or(&0u32)
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
@@ -48,7 +58,7 @@ pub fn part_one(input: &str) -> Option<u32> {
         Some(
             reports
                 .filter(|report| is_report_valid(report, &rules_map))
-                .map(|report| get_middle_page(&report).unwrap_or(0))
+                .map(get_middle_page)
                 .sum(),
         )
     } else {
@@ -62,16 +72,16 @@ pub fn part_two(input: &str) -> Option<u32> {
             reports
                 .filter(|report| !is_report_valid(report, &rules_map))
                 .map(HashSet::from_iter)
-                .map(|report_set: HashSet<&str>| {
+                .map(|report_set: HashSet<u32>| {
                     let mut filtered_rules = rules_map
                         .iter()
-                        .filter(|(&key, _)| report_set.contains(key))
+                        .filter(|(key, _)| report_set.contains(key))
                         .collect::<HashMap<_, _>>();
 
-                    let res = (1..filtered_rules.len())
+                    (1..filtered_rules.len())
                         .map(|_| {
-                            let requisite_set: HashSet<&str> =
-                                filtered_rules.keys().map(|&s| *s).collect();
+                            let requisite_set: HashSet<u32> =
+                                filtered_rules.keys().map(|&&s| s).collect();
                             let (&next_page, _) = &filtered_rules
                                 .iter()
                                 .find(|(_, prerequisite_pages)| {
@@ -83,10 +93,9 @@ pub fn part_two(input: &str) -> Option<u32> {
                             *next_page
                         })
                         .rev()
-                        .collect::<Vec<_>>();
-                    res
+                        .collect::<Vec<_>>()
                 })
-                .map(|report| get_middle_page(&report).unwrap_or(0))
+                .map(get_middle_page)
                 .sum(),
         )
     } else {
