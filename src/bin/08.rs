@@ -31,58 +31,75 @@ fn is_point_in_grid<T>(grid: &[Vec<T>], (y, x): (i32, i32)) -> bool {
     x >= 0 && y >= 0 && y < (grid.len() as i32) && x < (grid[y as usize].len() as i32)
 }
 
-pub fn part_one(input: &str) -> Option<u32> {
-    let grid = parse(input);
-    let map = into_hashmap(&grid);
-
-    let antinodes = map
+fn get_antinodes<F>(antenna_map: HashMap<&str, Vec<(i32, i32)>>, func: F) -> HashSet<(i32, i32)>
+where
+    F: Fn(&mut HashSet<(i32, i32)>, &(i32, i32), &(i32, i32)),
+{
+    antenna_map
         .iter()
         .fold(HashSet::new(), |mut antinodes, (_, antennae)| {
             antennae[..antennae.len() - 1]
                 .iter()
                 .enumerate()
-                .for_each(|(i, (ay, ax))| {
-                    antennae[i + 1..antennae.len()].iter().for_each(|(by, bx)| {
-                        let (dy, dx) = (ay - by, ax - bx);
-
-                        let antinode_a = (ay + dy, ax + dx);
-                        let antinode_b = (by - dy, bx - dx);
-
-                        if is_point_in_grid(&grid, antinode_a) {
-                            antinodes.insert(antinode_a);
-                        }
-
-                        if is_point_in_grid(&grid, antinode_b) {
-                            antinodes.insert(antinode_b);
-                        }
-                    });
+                .for_each(|(i, a)| {
+                    antennae[i + 1..antennae.len()]
+                        .iter()
+                        .for_each(|b| func(&mut antinodes, a, b));
                 });
 
             antinodes
-        });
-
-    dbg!(&grid.iter().map(|row| row.join("")).collect::<Vec<_>>());
-
-    dbg!(&grid
-        .iter()
-        .enumerate()
-        .map(|(y, row)| row
-            .iter()
-            .enumerate()
-            .map(|(x, cell)| if antinodes.contains(&(y as i32, x as i32)) {
-                "#"
-            } else {
-                cell
-            })
-            .collect::<Vec<_>>()
-            .join(""))
-        .collect::<Vec<_>>());
-
-    Some(antinodes.len() as u32)
+        })
 }
 
-pub fn part_two(_input: &str) -> Option<u32> {
-    None
+pub fn part_one(input: &str) -> Option<u32> {
+    let grid = parse(input);
+    let map = into_hashmap(&grid);
+
+    Some(
+        get_antinodes(map, |antinodes, (ay, ax), (by, bx)| {
+            let (dy, dx) = (ay - by, ax - bx);
+
+            let antinode_a = (ay + dy, ax + dx);
+            let antinode_b = (by - dy, bx - dx);
+
+            if is_point_in_grid(&grid, antinode_a) {
+                antinodes.insert(antinode_a);
+            }
+
+            if is_point_in_grid(&grid, antinode_b) {
+                antinodes.insert(antinode_b);
+            }
+        })
+        .len() as u32,
+    )
+}
+
+pub fn part_two(input: &str) -> Option<u32> {
+    let grid = parse(input);
+    let map = into_hashmap(&grid);
+
+    Some(
+        get_antinodes(map, |antinodes, (ay, ax), (by, bx)| {
+            let (dy, dx) = (ay - by, ax - bx);
+
+            antinodes.insert((*ay, *ax));
+            antinodes.insert((*by, *bx));
+
+            let mut ia = 1;
+            let mut ib = 1;
+
+            while is_point_in_grid(&grid, (ay + (dy * ia), ax + (dx * ia))) {
+                antinodes.insert((ay + (dy * ia), ax + (dx * ia)));
+                ia += 1;
+            }
+
+            while is_point_in_grid(&grid, (by - (dy * ib), bx - (dx * ib))) {
+                antinodes.insert((by - (dy * ib), bx - (dx * ib)));
+                ib += 1;
+            }
+        })
+        .len() as u32,
+    )
 }
 
 #[cfg(test)]
@@ -98,6 +115,6 @@ mod tests {
     #[test]
     fn test_part_two() {
         let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
+        assert_eq!(result, Some(34));
     }
 }
