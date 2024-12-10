@@ -56,27 +56,33 @@ fn find_neighbours(map: &TopoMap, (py, px): Point, term: u8) -> Vec<Point> {
     valid_neighbours
 }
 
+fn hike(map: &TopoMap, input_points: Vec<Point>) -> Vec<Point> {
+    let mut points = input_points;
+    for i in 1..=9 {
+        points = points
+            .iter()
+            .flat_map(|point| find_neighbours(map, *point, i))
+            .collect()
+    }
+    points
+}
+
 pub fn part_one(input: &str) -> Option<u32> {
     let map = parse(input);
 
     let trailheads = find_trailheads(&map);
 
     Some(trailheads.iter().fold(0u32, |acc, trailhead| {
-        let mut points: Vec<Point> = vec![*trailhead];
-
-        for i in 1..=9 {
-            points = points
-                .iter()
-                .flat_map(|point| find_neighbours(&map, *point, i))
-                .collect()
-        }
-
-        acc + HashSet::<Point>::from_iter(points).len() as u32
+        acc + HashSet::<Point>::from_iter(hike(&map, vec![*trailhead])).len() as u32
     }))
 }
 
-pub fn part_two(_input: &str) -> Option<u32> {
-    None
+pub fn part_two(input: &str) -> Option<u32> {
+    let map = parse(input);
+
+    let points = hike(&map, find_trailheads(&map));
+
+    Some(points.len() as u32)
 }
 
 #[cfg(test)]
